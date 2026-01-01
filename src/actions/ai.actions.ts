@@ -1,7 +1,7 @@
 "use server";
 
 import { ChatOpenAI } from "@langchain/openai";
-import { ChatOllama } from "@langchain/community/chat_models/ollama";
+import { ChatOllama } from "@langchain/ollama";
 import {
   StringOutputParser,
   StructuredOutputParser,
