@@ -51,7 +51,7 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED 1
 # Set environment variables
 ENV NODE_ENV=production
-ENV DATABASE_URL=file:./data/dev.db
+ENV DATABASE_URL=file:/data/dev.db
 ENV USER_EMAIL=admin@example.com
 ENV USER_PASSWORD=password123
 # Refer to readme to generate auth secret
