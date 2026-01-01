@@ -1,4 +1,15 @@
 {
     "editor.fontVariations": false,
-    "css.lint.unknownAtRules": "ignore"
+    "css.lint.unknownAtRules": "ignore",
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/.retool_types/**": true,
+        "**/*tsconfig.json": true,
+        ".cache": true,
+        "retool.config.json": true
+    }
 }
