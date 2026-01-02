@@ -33,5 +33,3 @@ services:
       - GENERIC_TIMEZONE=Europe/Rome
     volumes:
       - ./n8n_data:/home/node/.n8n
-    networks:
-      - jobsync_default  # stessa rete di Jobsync
