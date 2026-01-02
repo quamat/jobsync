@@ -19,3 +19,19 @@ services:
       AUTH_TRUST_HOST: ${AUTH_TRUST_HOST}
     volumes:
       - ./jobsyncdb/data:/data
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://n8n:5678/
+      - GENERIC_TIMEZONE=Europe/Rome
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    networks:
+      - jobsync_default  # stessa rete di Jobsync

@@ -66,6 +66,7 @@ export function AddJob({
   editJob,
   resetEditJob,
 }: AddJobProps) {
+  const [importLoading, setImportLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
   const [resumes, setResumes] = useState<Resume[]>([]);
@@ -172,6 +173,113 @@ export function AddJob({
     }
   };
 
+  const handleImportFromLinkedIn = async () => {
+    const jobUrl = form.getValues("jobUrl");
+
+    if (!jobUrl) {
+      toast({
+        variant: "destructive",
+        title: "Missing URL",
+        description: "Please paste a job URL before importing.",
+      });
+      return;
+    }
+
+    try {
+      setImportLoading(true);
+
+      console.log("Fetching job details from LinkedIn...")
+      const res = await fetch("/api/jobs/import-from-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobUrl }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error(err);
+        toast({
+          variant: "destructive",
+          title: "Import failed",
+          description: err.error || "Unable to import job details.",
+        });
+        return;
+      }
+
+      const data = await res.json();
+      const imported = data.jobForm as {
+        source: string;
+        title: string;
+        type: string;
+        company: string;
+        location: string;
+        status: string;
+        dueDate: string;
+        salaryRange: string;
+        jobDescription: string;
+        jobUrl: string;
+        applied: boolean;
+      };
+
+      console.log("Job details imported from LinkedIn:", imported);
+
+      // Mappa i valori nel form:
+      // jobUrl resta quello già inserito
+      setValue("jobDescription", imported.jobDescription);
+
+      // jobDescription: testo plain da Browse AI
+      if (imported.jobDescription) {
+        console.debug("Setting jobDescription");
+        setValue("jobDescription", imported.jobDescription, { shouldDirty: true });
+      }
+
+      // jobUrl: lo manteniamo uguale
+      console.debug("Ensuring jobUrl is set to", imported.jobUrl);
+      setValue("jobUrl", imported.jobUrl, { shouldDirty: true });
+
+      // type: mappa Employment Type → chiave enum
+      if (imported.type) {
+        const typeLower = imported.type.toLowerCase();
+        let typeKey: keyof typeof JOB_TYPES | undefined;
+
+        if (typeLower.includes("full")) typeKey = "FT";
+        else if (typeLower.includes("part")) typeKey = "PT";
+        else if (typeLower.includes("contract")) typeKey = "C";
+
+        if (typeKey) {
+          console.debug("Setting type to", typeKey);
+          setValue("type", typeKey, { shouldDirty: true });
+        }
+      }
+
+      // status: se vuoi forzare "To apply" mappato al primo jobStatuses
+      // (per ora lasciamo quello che c'è di default)
+
+      // applied: di solito false all'inizio, quindi non tocchiamo
+
+      // dueDate: puoi usare imported.dueDate o lasciar default
+      if (imported.dueDate) {
+        console.debug("Setting dueDate from imported.dueDate");
+        setValue("dueDate", new Date(imported.dueDate), { shouldDirty: true });
+      }
+
+      toast({
+        variant: "success",
+        description: "Job details imported from LinkedIn.",
+      });
+
+    } catch (err) {
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Import error",
+        description: "Unexpected error importing job details.",
+      });
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   const closeDialog = () => setDialogOpen(false);
 
   const createResume = () => {
@@ -211,14 +319,31 @@ export function AddJob({
                     control={form.control}
                     name="jobUrl"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col">
+                      <FormItem className="flex flex-col gap-2">
                         <FormLabel>Job URL</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Copy and paste job link here"
-                            {...field}
-                          />
-                        </FormControl>
+                        <div className="flex gap-2">
+                          <FormControl className="flex-1">
+                            <Input
+                              placeholder="Copy and paste job link here"
+                              {...field}
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleImportFromLinkedIn}
+                            disabled={importLoading}
+                          >
+                            {importLoading ? (
+                              <>
+                                <Loader className="mr-2 h-4 w-4 spinner" />
+                                Importing...
+                              </>
+                            ) : (
+                              "Import"
+                            )}
+                          </Button>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
