@@ -46,6 +46,9 @@ import { Combobox } from "../ComboBox";
 import { Resume } from "@/models/profile.model";
 import CreateResume from "../profile/CreateResume";
 import { getResumeList } from "@/actions/profile.actions";
+import { createJobTitle } from "@/actions/jobtitle.actions";
+import { createLocation } from "@/actions/job.actions";
+import { addCompany } from "@/actions/company.actions";
 
 type AddJobProps = {
   jobStatuses: JobStatus[];
@@ -78,6 +81,7 @@ export function AddJob({
       dueDate: addDays(new Date(), 3),
       status: jobStatuses[0].id,
       salaryRange: "1",
+      jobDescription: "",
     },
   });
 
@@ -173,6 +177,159 @@ export function AddJob({
     }
   };
 
+  // Cerca o crea JobTitle, restituisce l'ID
+  const findOrCreateJobTitleId = async (label: string): Promise<string | undefined> => {
+    const normalized = label.trim().toLowerCase();
+    if (!normalized) return;
+
+    // 1. Prova a matchare tra i jobTitles passati come prop
+    let found =
+      jobTitles.find(t => t.value.toLowerCase() === normalized) ||
+      jobTitles.find(t => t.label.toLowerCase() === normalized) ||
+      jobTitles.find(t => t.label.toLowerCase().startsWith(normalized)) ||
+      jobTitles.find(t => normalized.startsWith(t.label.toLowerCase())) ||
+      jobTitles.find(t => t.label.toLowerCase().includes(normalized));
+
+    if (found) {
+      console.debug("[Import][JobTitle] Matched existing:", found.label);
+      return found.id;
+    }
+
+    // 2. Crea il JobTitle via azione server
+    try {
+      console.info("[Import][JobTitle] Creating new title from label:", label);
+      const created = await createJobTitle(label);
+      // createJobTitle ritorna direttamente l'oggetto JobTitle
+      if (created && "id" in created) {
+        console.debug("[Import][JobTitle] Created:", created.id);
+        jobTitles.push(created as any);
+        return (created as any).id;
+      }
+
+      console.error("[Import][JobTitle] Unexpected response from createJobTitle:", created);
+      toast({
+        variant: "destructive",
+        title: "Job Title creation failed",
+        description: "Unable to create job title from imported data.",
+      });
+      return;
+    } catch (error) {
+      console.error("[Import][JobTitle] Error creating title:", error);
+      toast({
+        variant: "destructive",
+        title: "Job Title creation failed",
+        description: "Unexpected error while creating job title.",
+      });
+      return;
+    }
+  };
+
+  // Cerca o crea Company, restituisce l'ID
+  const findOrCreateCompanyId = async (label: string): Promise<string | undefined> => {
+    const normalized = label.trim().toLowerCase();
+    if (!normalized) return;
+
+    // 1. Prova a matchare tra le companies passate come prop
+    let found =
+      companies.find(c => c.value.toLowerCase() === normalized) ||
+      companies.find(c => c.label.toLowerCase() === normalized) ||
+      companies.find(c => c.label.toLowerCase().startsWith(normalized)) ||
+      companies.find(c => normalized.startsWith(c.label.toLowerCase())) ||
+      companies.find(c => c.label.toLowerCase().includes(normalized));
+
+    if (found) {
+      console.debug("[Import][Company] Matched existing:", found.label);
+      return found.id;
+    }
+
+    // 2. Crea la Company via addCompany
+    try {
+      console.info("[Import][Company] Creating new company from label:", label);
+      const res = await addCompany({ company: label, logoUrl: "" } as any);
+      if (res && res.success && res.data) {
+        console.debug("[Import][Company] Created:", res.data.id);
+        companies.push(res.data as any);
+        return (res.data as any).id;
+      }
+
+      console.error("[Import][Company] Unexpected response from addCompany:", res);
+      toast({
+        variant: "destructive",
+        title: "Company creation failed",
+        description: "Unable to create company from imported data.",
+      });
+      return;
+    } catch (error) {
+      console.error("[Import][Company] Error creating company:", error);
+      toast({
+        variant: "destructive",
+        title: "Company creation failed",
+        description: "Unexpected error while creating company.",
+      });
+      return;
+    }
+  };
+
+  // Cerca o crea Location, restituisce l'ID
+  const findOrCreateLocationId = async (label: string): Promise<string | undefined> => {
+    const normalized = label.trim().toLowerCase();
+    if (!normalized) return;
+
+    // 1. Prova a matchare tra le locations passate come prop
+    let found =
+      locations.find(l => l.value.toLowerCase() === normalized) ||
+      locations.find(l => l.label.toLowerCase() === normalized) ||
+      locations.find(l => l.label.toLowerCase().startsWith(normalized)) ||
+      locations.find(l => normalized.startsWith(l.label.toLowerCase())) ||
+      locations.find(l => l.label.toLowerCase().includes(normalized));
+
+    if (found) {
+      console.debug("[Import][Location] Matched existing:", found.label);
+      return found.id;
+    }
+
+    // 2. Crea la Location via createLocation
+    try {
+      console.info("[Import][Location] Creating new location from label:", label);
+      const res = await createLocation(label);
+      if (res && res.success && res.data) {
+        console.debug("[Import][Location] Created:", res.data.id);
+        locations.push(res.data as any);
+        return (res.data as any).id;
+      }
+
+      console.error("[Import][Location] Unexpected response from createLocation:", res);
+      toast({
+        variant: "destructive",
+        title: "Location creation failed",
+        description: "Unable to create location from imported data.",
+      });
+      return;
+    } catch (error) {
+      console.error("[Import][Location] Error creating location:", error);
+      toast({
+        variant: "destructive",
+        title: "Location creation failed",
+        description: "Unexpected error while creating location.",
+      });
+      return;
+    }
+  };
+
+  const findLinkedInSourceId = (): string | undefined => {
+    const found =
+      jobSources.find(s => s.value.toLowerCase() === "linkedin") ||
+      jobSources.find(s => s.label.toLowerCase().includes("linkedin"));
+
+    if (found) {
+      console.debug("[Import][Source] Matched LinkedIn source:", found.label);
+      return found.id;
+    }
+
+    console.warn("[Import][Source] No LinkedIn source found in jobSources");
+    return undefined;
+  };
+
   const handleImportFromLinkedIn = async () => {
     const jobUrl = form.getValues("jobUrl");
 
@@ -187,8 +344,8 @@ export function AddJob({
 
     try {
       setImportLoading(true);
+      console.log("[Import] Fetching job details from LinkedIn...");
 
-      console.log("Fetching job details from LinkedIn...")
       const res = await fetch("/api/jobs/import-from-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -197,7 +354,7 @@ export function AddJob({
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        console.error(err);
+        console.error("[Import] Error response from /api/jobs/import-from-url:", err);
         toast({
           variant: "destructive",
           title: "Import failed",
@@ -221,45 +378,72 @@ export function AddJob({
         applied: boolean;
       };
 
-      console.log("Job details imported from LinkedIn:", imported);
+      console.log("[Import] Job details imported from LinkedIn:", imported);
 
-      // Mappa i valori nel form:
-      // jobUrl resta quello già inserito
-      setValue("jobDescription", imported.jobDescription);
-
-      // jobDescription: testo plain da Browse AI
-      if (imported.jobDescription) {
-        console.debug("Setting jobDescription");
-        setValue("jobDescription", imported.jobDescription, { shouldDirty: true });
-      }
-
-      // jobUrl: lo manteniamo uguale
-      console.debug("Ensuring jobUrl is set to", imported.jobUrl);
-      setValue("jobUrl", imported.jobUrl, { shouldDirty: true });
-
-      // type: mappa Employment Type → chiave enum
-      if (imported.type) {
-        const typeLower = imported.type.toLowerCase();
-        let typeKey: keyof typeof JOB_TYPES | undefined;
-
-        if (typeLower.includes("full")) typeKey = "FT";
-        else if (typeLower.includes("part")) typeKey = "PT";
-        else if (typeLower.includes("contract")) typeKey = "C";
-
-        if (typeKey) {
-          console.debug("Setting type to", typeKey);
-          setValue("type", typeKey, { shouldDirty: true });
+      // Job Title (JobTitle.id)
+      if (imported.title) {
+        const jobTitleId = await findOrCreateJobTitleId(imported.title);
+        if (jobTitleId) {
+          console.debug("[Import] Setting form.title to", jobTitleId);
+          setValue("title", jobTitleId, { shouldDirty: true });
         }
       }
 
-      // status: se vuoi forzare "To apply" mappato al primo jobStatuses
-      // (per ora lasciamo quello che c'è di default)
+      // Company (Company.id)
+      if (imported.company) {
+        const companyId = await findOrCreateCompanyId(imported.company);
+        if (companyId) {
+          console.debug("[Import] Setting form.company to", companyId);
+          setValue("company", companyId, { shouldDirty: true });
+        }
+      }
 
-      // applied: di solito false all'inizio, quindi non tocchiamo
+      // Location (JobLocation.id)
+      if (imported.location) {
+        const locationId = await findOrCreateLocationId(imported.location);
+        if (locationId) {
+          console.debug("[Import] Setting form.location to", locationId);
+          setValue("location", locationId, { shouldDirty: true });
+        }
+      }
 
-      // dueDate: puoi usare imported.dueDate o lasciar default
+      // jobDescription
+      if (imported.jobDescription) {
+        console.debug("[Import] Setting jobDescription");
+        setValue("jobDescription", imported.jobDescription, { shouldDirty: true });
+      }
+
+      // jobUrl
+      if (imported.jobUrl) {
+        console.debug("[Import] Ensuring jobUrl is set to", imported.jobUrl);
+        setValue("jobUrl", imported.jobUrl, { shouldDirty: true });
+      }
+
+      // Job Source: forza LinkedIn
+      const linkedInSourceId = findLinkedInSourceId();
+      if (linkedInSourceId) {
+        console.debug("[Import] Setting form.source to LinkedIn:", linkedInSourceId);
+        setValue("source", linkedInSourceId, { shouldDirty: true });
+      }
+
+      // type: mappa Employment Type → chiave enum
+      if (imported.type) {
+        // const typeLower = imported.type.toLowerCase();
+        // let typeKey: keyof typeof JOB_TYPES | undefined;
+
+        // if (typeLower.includes("full")) typeKey = "FT";
+        // else if (typeLower.includes("part")) typeKey = "PT";
+        // else if (typeLower.includes("contract")) typeKey = "C";
+
+        // if (typeKey) {
+          console.log("[Import] Setting type to "+ imported.type);
+          setValue("type", imported.type, { shouldDirty: true });
+        // }
+      }
+
+      // dueDate
       if (imported.dueDate) {
-        console.debug("Setting dueDate from imported.dueDate");
+        console.debug("[Import] Setting dueDate from imported.dueDate");
         setValue("dueDate", new Date(imported.dueDate), { shouldDirty: true });
       }
 
@@ -267,9 +451,8 @@ export function AddJob({
         variant: "success",
         description: "Job details imported from LinkedIn.",
       });
-
     } catch (err) {
-      console.error(err);
+      console.error("[Import] Unexpected error:", err);
       toast({
         variant: "destructive",
         title: "Import error",
@@ -279,6 +462,7 @@ export function AddJob({
       setImportLoading(false);
     }
   };
+
 
   const closeDialog = () => setDialogOpen(false);
 
@@ -421,7 +605,7 @@ export function AddJob({
                         <RadioGroup
                           name="type"
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value}
                           className="flex space-y-1"
                         >
                           {Object.entries(JOB_TYPES).map(([key, value]) => (

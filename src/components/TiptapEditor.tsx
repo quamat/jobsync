@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { JobForm } from "@/models/job.model";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -41,6 +43,20 @@ const Tiptap = ({ field }: { field: ControllerRenderProps<any, any> }) => {
       field.onChange(editor.getHTML());
     },
   });
+
+  useEffect(() => {
+    if (!editor) return;
+    // evita loop: aggiorna solo se il contenuto è diverso
+    const current = editor.getHTML();
+    if (field.value && field.value !== current) {
+      editor.commands.setContent(field.value);
+    }
+    if (!field.value && current !== "<p></p>") {
+      editor.commands.setContent("");
+    }
+  }, [editor, field.value]);
+
+  if (!editor) return null;
 
   return (
     <div className="flex flex-col gap-2">

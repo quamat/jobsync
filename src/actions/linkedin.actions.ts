@@ -35,6 +35,10 @@ type ApifyLinkedinJobDetailsItem = {
     jobLocation?: string;
     postedTimeAgo?: string;
   }[];
+  criteria?: {
+    name?: string;
+    value?: string;
+  }[];
 };
 
 type LinkedinFormData = {
@@ -43,24 +47,41 @@ type LinkedinFormData = {
   location: string;
   description: string;
   jobUrl: string;
+  employmentType: string; // Full-time, Part-time, ecc.
+  postedTimeAgo: string;  // es. "2 weeks ago"
 };
-
-function computeExpiresAt(days: number): Date {
-  const now = new Date();
-  return new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-}
 
 function mapApifyItemToForm(
   item: ApifyLinkedinJobDetailsItem,
   url: string,
 ): LinkedinFormData {
+  // estrai Employment type dai criteria
+  let employmentType = "";
+  if (Array.isArray(item.criteria)) {
+    const emp = item.criteria.find(
+      c =>
+        c?.name?.toLowerCase() === "employment type" ||
+        c?.name?.toLowerCase() === "employment type "
+    );
+    if (emp?.value) {
+      employmentType = emp.value;
+    }
+  }
+
   return {
-    title: item.jobTitle ?? '',
-    company: item.companyName ?? '',
-    location: item.jobLocation ?? '',
-    description: item.description ?? '',
+    title: item.jobTitle ?? "",
+    company: item.companyName ?? "",
+    location: item.jobLocation ?? "",
+    description: item.description ?? "",
     jobUrl: url,
+    employmentType,
+    postedTimeAgo: item.postedTimeAgo ?? "",
   };
+}
+
+function computeExpiresAt(days: number): Date {
+  const now = new Date();
+  return new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
 function getApifyToken(): string {
