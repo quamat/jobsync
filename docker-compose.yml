@@ -29,7 +29,7 @@ services:
       - N8N_HOST=n8n
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
-      - WEBHOOK_URL=https://n8n.quamat.myasustor.com:5678/
+      - WEBHOOK_URL=https://quamat.myasustor.com:5678/
       - GENERIC_TIMEZONE=Europe/Rome
       - N8N_SECURE_COOKIE=false
     volumes:
