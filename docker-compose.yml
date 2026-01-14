@@ -20,6 +20,7 @@ services:
     volumes:
       - ./jobsyncdb/data:/data
     restart: unless-stopped
+
   n8n:
     image: n8nio/n8n:latest
     container_name: n8n
@@ -35,3 +36,25 @@ services:
       - N8N_SECURE_COOKIE=false
     volumes:
       - ./n8n_data:/home/node/.n8n
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama_data:/root/.ollama
+    restart: unless-stopped
+    tty: true
+
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - "5678:443"
+      - "8081:81"
+    volumes:
+      - /volume1/docker/npm/data:/data
+      - /volume1/docker/npm/letsencrypt:/etc/letsencrypt
+
