@@ -31,6 +31,7 @@ services:
       - N8N_PROTOCOL=https
       - WEBHOOK_URL=https://quamat.myasustor.com:5678/
       - N8N_EDITOR_BASE_URL=https://quamat.myasustor.com:5678/
+      - N8N_ALLOWED_ORIGINS=https://quamat.myasustor.com:5678
       - GENERIC_TIMEZONE=Europe/Rome
       - N8N_SECURE_COOKIE=true
     volumes:
