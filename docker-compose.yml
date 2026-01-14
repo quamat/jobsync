@@ -26,12 +26,13 @@ services:
     container_name: n8n
     restart: unless-stopped
     environment:
-      - N8N_HOST=n8n
+      - N8N_HOST=quamat.myasustor.com
       - N8N_PORT=5678
-      - N8N_PROTOCOL=http
+      - N8N_PROTOCOL=https
       - WEBHOOK_URL=https://quamat.myasustor.com:5678/
+      - N8N_EDITOR_BASE_URL=https://quamat.myasustor.com:5678/
       - GENERIC_TIMEZONE=Europe/Rome
-      - N8N_SECURE_COOKIE=false
+      - N8N_SECURE_COOKIE=true
     volumes:
       - ./n8n_data:/home/node/.n8n
 
