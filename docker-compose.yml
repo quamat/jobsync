@@ -34,6 +34,12 @@ services:
       - N8N_ALLOWED_ORIGINS=https://quamat.myasustor.com:5678
       - GENERIC_TIMEZONE=Europe/Rome
       - N8N_SECURE_COOKIE=true
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=1440 # 60 days * 24h
+      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=100000
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all # or ‘none’ to save space
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_PROGRESS=false
     volumes:
       - ./n8n_data:/home/node/.n8n
 
